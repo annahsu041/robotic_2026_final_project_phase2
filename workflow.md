@@ -1,4 +1,4 @@
-# 🚁 Phase 2 Drone Project — Workflow & Architecture
+# Phase 2 Drone Project — Workflow & Architecture
 
 ## Project Overview
 
@@ -72,7 +72,7 @@ Docker Container: ros_gui_final
 
 ---
 
-## 🚀 Startup Sequence
+## Startup Sequence
 
 ### Prerequisites (one-time setup, already done)
 ```bash
@@ -102,7 +102,7 @@ source ~/catkin_ws/devel/setup.bash
 source ~/drone_ws/devel/setup.bash
 roslaunch drone_demo system_launch.launch
 ```
-✅ Wait for: `[Bridge] ✅ Drone armed!`
+Wait for: `[Bridge] ✅ Drone armed!`
 
 ---
 
@@ -112,7 +112,7 @@ docker exec -it ros_gui_final bash (optional if not in docker)
 source /opt/ros/noetic/setup.bash
 rosrun tf2_ros static_transform_publisher 0 0 0 0 0 0 map world
 ```
-⚠️ Keep this running — needed for RViz to show Ego-Planner markers
+Keep this running — needed for RViz to show Ego-Planner markers
 
 ---
 
@@ -151,7 +151,7 @@ rviz
 
 ---
 
-## 🤖 FSM State Machine (drone_fsm.py)
+## FSM State Machine (drone_fsm.py)
 
 ```
 TAKEOFF_EXPLORE
@@ -172,7 +172,7 @@ TAKEOFF_EXPLORE
 
 ---
 
-## 🔧 Debug Commands
+## Debug Commands
 
 ```bash
 # Full system health check
@@ -195,7 +195,7 @@ rostopic list | grep -E "planning|mavros|tag|fsm"
 
 ---
 
-## ⚠️ Known Issues & Fixes
+## Known Issues & Fixes
 
 | Issue | Cause | Fix |
 |---|---|---|
