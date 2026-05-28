@@ -101,10 +101,18 @@ class DroneFSM:
             if self.detection_count > 10:
                 self.tag_detected = True
 
+            # 記錄 AprilTag 在世界座標中的位置（供 APPROACH 重規劃使用）
+            tag_pose = msg.detections[0].pose.pose.pose
+            self._last_tag_pos = np.array([
+                tag_pose.position.x,
+                tag_pose.position.y,
+                tag_pose.position.z,
+            ])
+
             # 發布降落目標姿態
             landing_pose = PoseStamped()
             landing_pose.header = msg.header
-            landing_pose.pose = msg.detections[0].pose.pose.pose
+            landing_pose.pose = tag_pose
             self.landing_target_pub.publish(landing_pose)
         else:
             self.detection_count = max(0, self.detection_count - 1)
@@ -129,19 +137,26 @@ class DroneFSM:
 
     # ── 輔助函數 ────────────────────────────────────────
 
-    def _trigger_phase2_replan(self):
+    def _trigger_phase2_replan(self, goal_override: np.ndarray = None):
         """觸發 Phase 2 避障重規劃"""
         self.phase2_planning = True
         self.phase2_done = False
 
-        # 發布當前位置作為規劃起點
         goal_msg = PoseStamped()
         goal_msg.header.stamp = rospy.Time.now()
         goal_msg.header.frame_id = 'world'
-        # 目標點：繼續向前（可由上層任務規劃器提供）
-        goal_msg.pose.position.x = self.current_pos[0] + 3.0
-        goal_msg.pose.position.y = self.current_pos[1]
-        goal_msg.pose.position.z = self.current_pos[2]
+
+        if goal_override is not None:
+            # APPROACH 階段：目標為 AprilTag 正上方
+            goal_msg.pose.position.x = goal_override[0]
+            goal_msg.pose.position.y = goal_override[1]
+            goal_msg.pose.position.z = goal_override[2]
+        else:
+            # TAKEOFF_EXPLORE 階段：繼續向前探索
+            goal_msg.pose.position.x = self.current_pos[0] + 3.0
+            goal_msg.pose.position.y = self.current_pos[1]
+            goal_msg.pose.position.z = self.current_pos[2]
+
         goal_msg.pose.orientation.w = 1.0
         self.replan_trigger_pub.publish(goal_msg)
 
@@ -207,7 +222,11 @@ class DroneFSM:
                 # 過程中若仍有障礙物，插入一次重規劃
                 if self.obstacle_detected and not self.phase2_planning:
                     rospy.logwarn("[FSM] APPROACH 中偵測到障礙物，插入重規劃")
-                    self._trigger_phase2_replan()
+                    # 目標保持 AprilTag 上方 1.5m，繞過障礙物後繼續接近
+                    tag_above = self.current_pos.copy()
+                    if hasattr(self, '_last_tag_pos'):
+                        tag_above = self._last_tag_pos + np.array([0.0, 0.0, 1.5])
+                    self._trigger_phase2_replan(goal_override=tag_above)
                     self.phase2_planning = True
 
                 elif self.detection_count > 30:  # 穩定追蹤後切換

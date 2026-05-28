@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>drone_demo</name>
+  <version>0.1.0</version>
+  <description>
+    Phase 2: Vision-based multirotor autonomous obstacle avoidance
+    and precision landing — dynamic trajectory generation with
+    Convex Optimization + Minimum Snap.
+  </description>
+
+  <maintainer email="you@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- ROS runtime dependencies -->
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>mavros</exec_depend>
+  <exec_depend>mavros_msgs</exec_depend>
+  <exec_depend>apriltag_ros</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <!-- obstacle_detector: https://github.com/tysik/obstacle_detector -->
+  <!-- <exec_depend>obstacle_detector</exec_depend> -->
+
+  <export></export>
+</package>

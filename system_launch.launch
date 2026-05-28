@@ -1,39 +1,52 @@
 <launch>
     <!--
-      視覺感知多旋翼機系統架構 Launch 檔 (骨架範例)
-      整合 MAVROS, VIO (OpenVINS), EKF, 規劃器, 與視覺降落
+      視覺感知多旋翼機系統架構 Launch 檔
+      整合 MAVROS, VIO (OpenVINS), EKF, Phase2 規劃器, Bridge, AprilTag, FSM
+
+      使用前：將下方所有 $(arg pkg) 替換為你的實際 catkin package 名稱，
+               或執行: roslaunch <your_pkg> system_launch.launch pkg:=<your_pkg>
     -->
+    <arg name="pkg" default="drone_demo" doc="你的 catkin package 名稱"/>
 
     <!-- 1. MAVROS 節點 (連接 PX4 SITL) -->
     <include file="$(find mavros)/launch/px4.launch">
         <arg name="fcu_url" value="udp://:14540@127.0.0.1:14557" />
     </include>
 
-    <!-- 2. 視覺慣性里程計 (以 OpenVINS 為例) -->
+    <!-- 2. 視覺慣性里程計 (OpenVINS) -->
     <node pkg="open_vins" type="ov_msckf" name="ov_msckf" output="screen">
-        <!-- 這裡需替換為您對應相機與 IMU 的 yaml 設定檔 -->
-        <!-- <param name="config_path" value="$(find your_pkg)/config/openvins_config.yaml" /> -->
+        <!-- 替換為實際相機/IMU yaml 路徑 -->
+        <!-- <param name="config_path" value="$(find $(arg pkg))/config/openvins_config.yaml" /> -->
     </node>
 
-    <!-- 3. 感測器融合 (robot_localization 雙 EKF 範例) -->
+    <!-- 3. 感測器融合 EKF (robot_localization) -->
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_local" clear_params="true">
-        <!-- 載入融合設定 (融合 VIO odom + IMU) -->
-        <!-- <rosparam command="load" file="$(find your_pkg)/config/ekf_local.yaml" /> -->
+        <!-- <rosparam command="load" file="$(find $(arg pkg))/config/ekf_local.yaml" /> -->
         <remap from="odometry/filtered" to="/odom_world" />
     </node>
 
-    <!-- 4. 即時軌跡重規劃 (自行開發的階段二規劃器) -->
-    <node pkg="your_pkg" type="obstacle_avoidance_planner.py" name="obstacle_avoidance_planner" output="screen" />
+    <!-- 4. 障礙物偵測 (obstacle_detector) -->
+    <node pkg="obstacle_detector" type="obstacle_detector_node" name="obstacle_detector" output="screen">
+        <!-- 輸入：深度相機或 LiDAR 點雲，輸出：/obstacles -->
+        <!-- <param name="scanner_frame" value="laser" /> -->
+    </node>
 
-    <!-- 5. AprilTag 偵測 (apriltag_ros) -->
+    <!-- 5. Phase 2：動態避障規劃器 (凸優化 + Minimum Snap) -->
+    <node pkg="$(arg pkg)" type="obstacle_avoidance_planner.py"
+          name="obstacle_avoidance_planner" output="screen" />
+
+    <!-- 6. Phase 2：軌跡橋接節點 (/phase2/trajectory → MAVROS setpoint) -->
+    <node pkg="$(arg pkg)" type="ego_mavros_bridge.py"
+          name="ego_mavros_bridge" output="screen" />
+
+    <!-- 7. AprilTag 偵測 (apriltag_ros)，向下相機 -->
     <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
-        <arg name="camera_name" value="/iris/cam_down" /> <!-- 向下相機 -->
+        <arg name="camera_name" value="/iris/cam_down" />
         <arg name="image_topic" value="image_raw" />
-        <!-- <arg name="settings_extension" value="" /> -->
-        <!-- <arg name="tags_extension" value="" /> -->
     </include>
 
-    <!-- 6. 狀態機控制節點 (FSM) -->
-    <node pkg="your_pkg" type="drone_fsm.py" name="drone_fsm" output="screen" />
+    <!-- 8. FSM 狀態機控制節點 -->
+    <node pkg="$(arg pkg)" type="drone_fsm.py"
+          name="drone_fsm" output="screen" />
 
 </launch>
